@@ -1,0 +1,55 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: simple-container-config
+  namespace: default
+data:
+  NEW_FEATURE: "true"
+
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: simple-container-deploy
+  namespace: default
+  labels:
+    source: demo
+    stack: frontend
+    app: simple-container
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: simple-container
+  template:
+    metadata:
+      labels:
+        app: simple-container
+    spec:
+      containers:
+        - name: primary
+          image: index.docker.io/ronfreiberg2/simple-container-app
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+          envFrom:
+            - configMapRef:
+                name: simple-container-config
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: simple-container-svc
+  namespace: default
+spec:
+  selector:
+    app: simple-container
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: LoadBalancer
